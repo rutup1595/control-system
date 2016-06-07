@@ -20,7 +20,7 @@ k=o;
 else
     error('Wrong size for input argument Single input, single output system expected.')
 end
-else if(n==1& varargin(1)==1) //check if user enters a SISO array
+else if(n==1 & varargin(1)==1) //check if user enters a SISO array
         aa=1;
     else
         aa=0;
