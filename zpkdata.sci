@@ -1,83 +1,84 @@
-//author :Rutuja moharil
-// zero pole gain plot
-//returns the zeros z, poles p, and gain(s) k and sample time Ts of the zero-pole-gain SISO and MIMO model sys.
-function[x,t,o,dt]= zpkdata(sys,varargin)
-    n=length(varargin); //length of the input vairiable matrix
-    
-   select typeof(sys)   //check the system type
-    case "state-space"
-        sys=ss2tf(sys);  //convert state space to tf model
-    end;
-    
-    if (n==1)  then      //for SISO systems
-        if((strcmpi(varargin(1),'v'))==0) then   //check whether the string 'v' is entered 
-            
-     x=roots(sys.num);  //extracting the zeroes
-    t=roots(sys.den);  // extracting the poles
-       
-[y,o]=factors(sys.num); //extracting gain
-o=o;
-dt=sys.dt              // extracting sampling time
-else
-    error('specify proper variable input')
-     
-   end
 
-       
-       else if(n==0)       //for MIMO and array of SISO systems
-    
+function[x,k]= zero(sys,varargin)
+    //
+    //Calling Sequence
+    //function[x]=zpkdata(sys)   --- for  zeros of continuous siso systems
+    //function[x,k]=zpkdata(sys) ----for  zeros and gain of continuous siso systems
+    //function[x]=zpkdata(sys,1)  ---for  zeros of arrays of siso systems (Continuous)
+    //function[x,k]=zpkdata(sys,1) --- for  zeros and gain of arrays of siso systems (Continuous)
+    //Parameters
+    //sys- SISO or  array of SISO models 
+    //x - zero of the system
+    //k - gain of the system
+    //Description
+    //zero function calculates the zeroes of the system .The system can be either SISO or array of SISO .
+    //this function is not defined for MIMO . thus this function considers any MIMO function as an array of SISO 
+    //Examples:
+    // 1.s=poly(0,'s');
+    //sys=syslin('c',(4.2*s^2 +0.25*s-0.004)/(s^2+9.6*s+17)); 
+    //[z1 b1]= zero(sys)
+    // 2. aa=pid(rand(2,2,3),3,4,5);
+    //[z2 b2]=zero(aa,1);
+    //3.a=ssrand(2,2,3)
+    //[z3 b3]=zero(a,1)
 
-    m = size(sys);
-nd = length(m);
+    //See also
+    // ndims,cell,factors,roots
+    //Authors
+    //Rutuja Moharil
+    //Bibliography
+    //https://in.mathworks.com/help/control/ref/zero.html
 
-   if(nd>2) then
-       x=cell(size(sys,'r'),size(sys,'c'),size(sys,3))
-       y=cell(size(sys,'r'),size(sys,'c'),size(sys,3))
-       o=cell(size(sys,'r'),size(sys,'c'),size(sys,3))
-    for i=1:size(sys,'r')
-        for j=1:size(sys,'c')
-            for k=1:size(sys,3)
-                x(i,j,k).entries=(roots(sys(i,j,k).num));
-           
-                
-      //extracting the zeroes
-  t(i,j,k).entries=roots(sys(i,j,k).den); 
-                               // extracting the poles
-                              // [y,m]=factors(n);
-                              
- [y,nn]=factors(sys(i,j,k).num);
-o(i,j,k).entries=nn;
-    //        b= t(:,:,l);
-      //      c=k(:,:,l);
-       dt=sys.dt;
-              
-    end 
-end
-end
-
-else 
-    x=cell(size(sys,'r'),size(sys,'c'))
-    t=cell(size(sys,'r'),size(sys,'c'))
-   o=cell(size(sys,'r'),size(sys,'c'))
-        for i=1:size(sys,'r')
-        for j=1:size(sys,'c')
-            x(i,j).entries=roots(sys(i,j).num);
-            
-        
-            t(i,j).entries=roots(sys(i,j).den);
-                
-[y,nn]=factors(sys(i,j).num);
-    o(i,j).entries=nn;
-    dt=sys.dt
-    //        b= t(:,:,l);
-      //      c=k(:,:,l);
-       
-          
-      end
-  end
-     
+    n=length(varargin);
+    if n>1 then
+        error("Too many input arguments")
     end
- end
+    //---------------check siso------------------//    
+    if (n==0)& ndims(sys)==2 then                                                    //for SISO simply enter the system 
+        select typeof(sys) 
+        case "state-space" then                                     //check if state-space
+            sys=ss2tf(sys);                                           //convert state-space to rational
+        end;
+        if(size(sys)==[1 1]) then                                         //check if the system is SISO
+            x=roots(sys.num);                                            // extracting the zeros
 
-  end              
-   endfunction
+            [y,o]=factors(sys.num);                                               //extracting gain
+            k=o;
+        else
+             error(msprintf(_("\n %s: Wrong type of input argument #%d: SISO model expected.\n"),"zero",1))
+        end
+        //----------check siso array-------------------//
+    elseif varargin(1)==1 then                                   
+                select typeof(sys) 
+                case "state-space" then 
+                error(msprintf(_("\n %s: Wrong type of input argument #%d: SISO array model expected.\n"),"zero",1))    
+                end;
+                m = size(sys);                                               //find the size of array of SISO
+                nd = length(m);
+                //--------------siso array---------------------//
+                if(nd>2) then                                                      //3-D matrix or hypermatrix case
+                    x=cell(size(sys,'r'),size(sys,'c'),size(sys,3))                // creating cell array of empty matrices of zeroes
+                    for i=1:size(sys,'r')
+                        for j=1:size(sys,'c')
+                            for l=1:size(sys,3)
+                                x(i,j,l).entries=(roots(sys(i,j,l).num));             //extracting the sub cell values of zeroes and display as matrix
+                                [y,nn]=factors(sys(i,j,l).num);
+                                k(i,j,l).entries=nn;
+
+                            end
+                        end
+                    end
+                else
+                    x=cell(size(sys,'r'),size(sys,'c'))                               //2-D siso array 
+                    for i=1:size(sys,'r')
+                        for j=1:size(sys,'c')
+                            x(i,j).entries=roots(sys(i,j).num);                       // creating cell array of empty matrices of zeroes
+                            [y,nn]=factors(sys(i,j).num);
+                            k(i,j).entries=nn;
+                        end
+                    end
+                end
+            end
+       
+    
+endfunction
